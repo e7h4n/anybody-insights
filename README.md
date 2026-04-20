@@ -116,6 +116,13 @@ If any count mismatches (e.g. 620 entries but only 300 render), it's **almost ce
 
 ---
 
+## Reference data
+
+A complete extracted dataset from the original build is checked in at [`example/dwarkesh/data.ts`](./example/dwarkesh/data.ts) — **450 opinions + 445 data points** from 54 Dwarkesh Podcast episodes. Use it as:
+- A concrete schema reference (what `Opinion` / `DataPoint` rows look like once extracted)
+- A sanity-check benchmark (if your extraction yields <300 rows from a comparable corpus, something's wrong)
+- A color/bucket template (11 topic buckets with stable hex colors)
+
 ## Credit
 
-Prompt distilled from a real end-to-end build of [insights-dwarkesh.vm6.ai](https://insights-dwarkesh.vm6.ai) — 450 opinions + 620 data points from 56 Dwarkesh Podcast transcripts, shipped in ~90 minutes after learning every pitfall listed above the hard way.
+Prompt distilled from a real end-to-end build of [insights-dwarkesh.vm6.ai](https://insights-dwarkesh.vm6.ai) — shipped in ~90 minutes after learning every pitfall listed above the hard way.
