@@ -16,7 +16,7 @@ The agent should then run the 7-step workflow below end-to-end, ship the site, a
 
 ## The Prompt
 
-```
+````
 # Task: Build a "Facts & Opinions" interactive knowledge-graph site about a public figure from their recent public content
 
 ## Goal
@@ -112,7 +112,7 @@ If any count mismatches (e.g. 620 entries but only 300 render), it's **almost ce
 - **Sources**: podcast RSS / YouTube channel / blog RSS / Twitter handle / mix
 - **Target domain**: `<subject>-insights.<yourdomain>`
 - **Available tools**: Firecrawl / Jina Reader / v0.dev API / Vercel API / GitHub API — any ingestion + deploy path works, but the agent must be able to both scrape and deploy
-```
+````
 
 ---
 
