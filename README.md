@@ -26,7 +26,7 @@ Given one public figure (or a podcast / KOL) and a time window of their public c
 
 ## Input
 The user will provide one of:
-- A folder / Drive directory of text material (`transcript.md`, `article.md`, `tweet.json`, …)
+- A local folder of text material (`transcript.md`, `article.md`, `tweet.json`, …)
 - A list of URLs (fetch via Firecrawl or Jina Reader)
 - A YouTube channel or RSS feed (batch-pull transcripts first)
 
