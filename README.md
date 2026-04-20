@@ -8,7 +8,7 @@ A self-contained, one-shot prompt for building a **Facts & Opinions** interactiv
 
 Copy this entire README and paste it into any capable coding agent (Claude Code, Cursor, Devin, OpenHands, a Codex-like agent, or any Claude-powered tool). Or, if your agent can fetch URLs, just point it at this repo:
 
-> Read `https://github.com/e7h4n/anybody-insights` and execute the prompt in the README. Before you start, ask me for: (1) the subject (public figure), (2) the time window, (3) the source material (RSS feed / YouTube channel / blog / Twitter handle), (4) the target domain for deployment, (5) which tools I have available (Firecrawl / Jina Reader / v0.dev / Vercel / GitHub).
+> Read `https://github.com/e7h4n/anybody-insights` and execute the prompt in the README. Before you start, ask me for: (1) the subject (public figure), (2) the time window, (3) the source material (RSS feed / YouTube channel / blog / Twitter handle), (4) which ingestion tools I have available (Firecrawl / Jina Reader / GitHub).
 
 The agent should then run the 7-step workflow below end-to-end, ship the site, and return the deployment URL plus a data-quality summary.
 
@@ -59,28 +59,23 @@ export const DATA_POINTS: DataPoint[] = [...];
 export const TOPIC_COLORS: Record<string,string> = {...}; // one Tailwind-compatible hex per bucket
 ```
 
-Field names are deliberately short (`sp/tp/st/cf/bk/dt`) to keep the TS file under 150 KB for fast Vercel deploy.
+Field names are deliberately short (`sp/tp/st/cf/bk/dt`) to keep the TS file under 150 KB for fast Pages builds.
 
-### 5. UI generation (use v0.dev, but only for the scaffold)
-**Critical lesson**: do NOT send the full dataset to v0 chat — any payload over ~30 KB will timeout. Correct flow:
-1. Call v0 with an **80-row sample** to generate the UI skeleton.
-2. Pull the v0 repo's files locally (via v0 API `GET /v1/chats/<id>`).
-3. Inject the full dataset into `lib/data.ts` locally.
-4. Push to GitHub → deploy to Vercel.
+### 5. UI
+Start from the scaffold in this repo (`app/`, `lib/`, `next.config.ts`, workflow, …). Build the following components under `components/` (hand-write, or use any codegen tool — just do not paste the full dataset into any LLM chat; wire it in via the file system):
+- **TopBar**: live search across speaker + topic + stance; confidence filter (All / Confident / Hedged / Speculative); view toggle (Opinions ↔ Data Points).
+- **Sidebar (left)**: Topic list with `TOPIC_COLORS` dots + Speaker list (top 15 with counts).
+- **OpinionCard**: masonry grid (`columns-*` CSS, no library); each card shows speaker, stance, topic chip (colored), confidence dot, date.
+- **DataPointsTable**: four columns — date / claim / context / speaker; sortable by date.
+- **FilterBar**: chips for active filters with one-click clear.
 
-v0 prompt template:
-> Build a minimal dark-mode React app (Next.js 14 + Tailwind + shadcn/ui) that browses a knowledge graph of a public figure. Data shape: `{opinions: Opinion[], dataPoints: DataPoint[]}` (80-row sample attached). Required components:
-> - **TopBar**: live search across speaker + topic + stance; confidence filter (All / Confident / Hedged / Speculative); view toggle (Opinions ↔ Data Points).
-> - **Sidebar (left)**: Topic list with `TOPIC_COLORS` dots + Speaker list (top 15 with counts).
-> - **OpinionCard**: masonry grid; each card shows speaker, stance, topic chip (colored), confidence dot, date.
-> - **DataPointsTable**: four columns — date / claim / context / speaker; sortable by date.
-> - **FilterBar**: chips for active filters with one-click clear.
-> Background `#0a0a0a`, primary text `#ededed`, secondary `#888`. No animation libraries — Tailwind transitions only.
+Styling: background `#0a0a0a`, primary text `#ededed`, secondary `#888`. Tailwind transitions only, no animation libraries.
 
 ### 6. Deploy
-- GitHub repo: `<subject>-insights`
-- Vercel project: same name; custom domain `<subject>-insights.<yourdomain>`
-- Every data refresh: rerun deploy, and bump the header comment in `lib/data.ts`: `// <N> opinions · <M> data points`.
+- GitHub repo: `<subject>-insights` (fork/clone this scaffold, rename).
+- Enable GitHub Pages → Source: **GitHub Actions**. The included `.github/workflows/pages.yml` handles `npm install && next build && deploy`. Resulting URL: `https://<user>.github.io/<subject>-insights/`.
+- Every data refresh: `git push`; the workflow redeploys. Bump the header comment in `lib/data.ts`: `// <N> opinions · <M> data points`.
+- Custom domain: add a `CNAME` file at the repo root and set the DNS `CNAME` record to `<user>.github.io`. Update `basePath`/`assetPrefix` in `next.config.ts` to `""` when serving from the apex.
 
 ### 7. Verify (do not skip)
 Fetch the deployed HTML with a headless browser and assert:
@@ -92,12 +87,13 @@ Fetch the deployed HTML with a headless browser and assert:
 If any count mismatches (e.g. 620 entries but only 300 render), it's **almost certainly a Step 4 batch-write truncation** — regenerate `data.ts` in full and redeploy.
 
 ## Known pitfalls (copy these guardrails, don't re-learn them)
-1. **v0 chat payload ≤ 30 KB** — larger requests silently timeout. Always use the "sample UI + local full-data injection" route.
+1. **Never paste the full dataset into an LLM chat.** Large payloads silently truncate or timeout; wire data in via `lib/data.ts` on the file system.
 2. **Data Points silently truncate** on batched imports — the last batch often times out after partially writing. Step 7's count assertion is non-negotiable.
 3. **Hard-code `TOPIC_COLORS`** in `data.ts`. Do not hash at runtime — colors should be stable across reloads.
 4. **Masonry layout** — use CSS `columns-*` only. Avoid `react-masonry-css`; first-paint jitter is worse.
 5. **Single-subject mode** — if the subject is one person (CEO, researcher), swap the Speaker sidebar for "People they cited / interviewed". A sidebar with one name is useless.
 6. **Source-date granularity** — normalize every `dt` to `YYYY-MM-DD` or `YYYY-MM`. Mixed granularity breaks date sorting.
+7. **`basePath` on Pages** — the scaffold auto-derives `basePath` from `GITHUB_REPOSITORY` when `GITHUB_PAGES=true`. All asset links must be relative or use Next's `<Link>`/`<Image>`; hard-coded `/foo.png` paths will 404 under the repo-name prefix.
 
 ## Acceptance criteria
 - First paint < 3 s
@@ -110,8 +106,7 @@ If any count mismatches (e.g. 620 entries but only 300 render), it's **almost ce
 - **Subject**: who? (e.g. Balaji Srinivasan, Paul Graham, Lex Fridman)
 - **Time window**: default past 12 months
 - **Sources**: podcast RSS / YouTube channel / blog RSS / Twitter handle / mix
-- **Target domain**: `<subject>-insights.<yourdomain>`
-- **Available tools**: Firecrawl / Jina Reader / v0.dev API / Vercel API / GitHub API — any ingestion + deploy path works, but the agent must be able to both scrape and deploy
+- **Available ingestion tools**: Firecrawl / Jina Reader / direct file input — any scraper works. Deployment always goes to GitHub Pages via the bundled workflow.
 ````
 
 ---
@@ -124,4 +119,4 @@ If any count mismatches (e.g. 620 entries but only 300 render), it's **almost ce
 
 ## Reference implementation
 
-See [e7h4n/insights-dwarkesh](https://github.com/e7h4n/insights-dwarkesh) — a concrete build using this exact prompt. 450 opinions + 445 data points from 54 Dwarkesh Podcast episodes. Live: [insights-dwarkesh.vm6.ai](https://insights-dwarkesh.vm6.ai) (Vercel) and [e7h4n.github.io/insights-dwarkesh](https://e7h4n.github.io/insights-dwarkesh/) (Pages).
+See [e7h4n/insights-dwarkesh](https://github.com/e7h4n/insights-dwarkesh) — a concrete build using this exact prompt. 450 opinions + 445 data points from 54 Dwarkesh Podcast episodes. Live at [e7h4n.github.io/insights-dwarkesh](https://e7h4n.github.io/insights-dwarkesh/).
